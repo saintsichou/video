@@ -1,0 +1,230 @@
+<!--
+ * @Date: 2020-05-22 09:59:35
+ * @LastEditors: Lee
+ * @LastEditTime: 2020-05-22 16:30:39
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <button id="begin" onclick="getUserMediaStream({ audio: true, video: { facingMode: 'user' } })">开始</button>
+    <button id="record" disabled onclick="toggleRecording()">录制</button>
+    <button id="play" disabled onclick="play()">播放</button>
+    <button id="download" disabled onclick="bufferToDataUrl()">下载</button>
+    <button id="reStart" disabled>重新开始</button>
+    <button id="upload">上传</button>
+    <video id="gumVideo" width="500" height="500" autoplay='autoplay' muted></video>
+    <video id="gumVideo2" width="500" height="500" autoplay='autoplay' muted></video>
+    <canvas id="myCanvas"></canvas>
+    <style>
+        /* 镜像显示哈哈 */
+        #gumVideo {
+            transform: rotateY(180deg);
+        }
+    </style>
+    <script>
+        var beginButton = document.querySelector('button#begin');
+        var recordButton = document.querySelector('button#record');
+        var playButton = document.querySelector('button#play');
+        var downloadButton = document.querySelector('button#download');
+        var reStartButton = document.querySelector('button#reStart');
+        var uploadBtn = document.querySelector('button#upload');
+        var gumVideo = document.querySelector('#gumVideo');
+        var gumVideo2 = document.querySelector('#gumVideo2');
+
+        var mediaRecorder;
+        var recordedBlobs;
+        var sourceBuffer;
+        console.log(gumVideo)
+        //打开摄像头
+        function getUserMediaStream(constraints, cb) {
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(handleSuccess)
+                .catch(err => { cb(err, null); });
+        }
+        //页面播放视频流
+        function handleSuccess(stream) {
+            console.log(stream)
+            recordButton.disabled = false;
+            console.log('getUserMedia() got stream: ', stream);
+            window.stream = stream;
+            if (window.URL) {
+                // gumVideo.src = window.URL.createObjectURL(stream);
+                gumVideo.srcObject = stream;
+                // return new Promise((resolve) => {
+                //     gumVideo.onloadedmetadata = () => {
+                //         resolve(gumVideo);
+                //     };
+                // });
+                // gumVideo.play()
+                console.log(gumVideo.srcObject)
+            } else {
+                gumVideo.src = stream;
+                console.log(gumVideo)
+            }
+
+            var c = document.getElementById("myCanvas");
+            c.width = 400;
+            c.height = 300;
+            var i;
+            gumVideo.addEventListener('play', function () {
+                var p = document.createElement('p');
+                p.innerText = 'hello';
+                // i = window.setInterval(function () {
+                //     if (littleVideo) {
+                //         drawLittleVideo(c);
+                //     } else {
+                //         drawBigVideo(c);
+                //     }
+                // }, 20);
+            }, false);
+            gumVideo.addEventListener('pause', function () { if (i) { window.clearInterval(i); } }, false);
+            gumVideo.addEventListener('ended', function () { if (i) { clearInterval(i); } }, false);
+        }
+
+        function startRecording() {
+            recordedBlobs = [];
+            var options = { mimeType: 'video/webm;codecs=vp9' };
+            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                console.log(options.mimeType + ' is not Supported');
+                options = { mimeType: 'video/webm;codecs=vp8' };
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    console.log(options.mimeType + ' is not Supported');
+                    options = { mimeType: 'video/webm' };
+                    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                        console.log(options.mimeType + ' is not Supported');
+                        options = { mimeType: '' };
+                    }
+                }
+            }
+            try {
+                mediaRecorder = new MediaRecorder(window.stream, options);
+            } catch (e) {
+                console.error('Exception while creating MediaRecorder: ' + e);
+                alert('Exception while creating MediaRecorder: '
+                    + e + '. mimeType: ' + options.mimeType);
+                return;
+            }
+            console.log('Created MediaRecorder', mediaRecorder, 'with options', options);
+            recordButton.textContent = '停止';
+            playButton.disabled = true;
+            downloadButton.disabled = true;
+            reStartButton.disabled = true;
+            mediaRecorder.onstop = handleStop;
+            mediaRecorder.ondataavailable = handleDataAvailable;
+            mediaRecorder.start(10); // collect 10ms of data
+            console.log('MediaRecorder started', mediaRecorder);
+        }
+        function handleStop(event) {
+            console.log('Recorder stopped: ', event);
+        }
+        function handleDataAvailable(event) {
+            if (event.data && event.data.size > 0) {
+                recordedBlobs.push(event.data);
+            }
+        }
+        function toggleRecording() {
+            if (recordButton.textContent === '录制' || recordButton.textContent === '重录') {
+                // littleVideo = false;
+                startRecording();
+                setTimeout(() => {
+                    stopRecording();
+                    recordButton.textContent = '重录';
+                    playButton.disabled = false;
+                    downloadButton.disabled = false;
+                    reStartButton.disabled = false;
+                }, 5000);
+            } else {
+                stopRecording();
+                recordButton.textContent = '重录';
+                playButton.disabled = false;
+                downloadButton.disabled = false;
+                reStartButton.disabled = false;
+            }
+        }
+        function stopRecording() {
+            //影藏录制中提
+            mediaRecorder.stop();
+            bufferToDataUrl()
+            console.log('Recorded Blobs: ', recordedBlobs);
+            //recordedVideo.controls = true;
+        }
+        function play() {
+            var superBuffer = new Blob(recordedBlobs, { type: 'video/mp4' });
+            //recordedVideo.src = window.URL.createObjectURL(superBuffer);
+            gumVideo2.src = window.URL.createObjectURL(superBuffer);
+            gumVideo2.play()
+        }
+        function upload() {
+            //保存在本地，通过post请求
+            var blob = new Blob(recordedBlobs, { type: 'video/mp4' });
+            // var data = new FormData();
+            // data.append('video', blob);
+            // data.append('qw', 123);
+            // data.append('question', 1);
+            // $.ajax({
+            //     type: "POST",
+            //     url: "/form/data",
+            //     data: data,
+            //     processData: false,   //  告诉jquery不要处理发送的数据
+            //     contentType: false,    // 告诉jquery不要设置content-Type请求头
+            //     success: function (msg) {
+            //         console.log(msg);
+            //     }
+            // });
+        }
+        //buffer转dataUrl
+        function bufferToDataUrl() {
+            let blob = new Blob(recordedBlobs, { type: "video/webm" });
+            let reader = new FileReader();
+            reader.onload = function () {
+                var a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = reader.result;
+                //文件名 通过方法传进来 检测是否合法？
+                a.download = 'record.mp4';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(function () {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(reader.result);
+                }, 100);
+            };
+            reader.readAsDataURL(blob);
+        }
+        function restartRecord() {
+            //清楚存留 按钮功能重置
+            recordButton.textContent = '录制';
+            playButton.disabled = true;
+            downloadButton.disabled = true;
+            reStartButton.disabled = true;
+            //handleSuccess();
+            navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: 'user' } }).
+                then(handleSuccess).catch(handleError);
+        }
+        //转文件
+        function dataUrlToFile(dataUrl) {
+            let binary = atob(dataUrl.split(",")[1]);
+            let data = [];
+            for (var i = 0; i < binary.length; i++)
+                data.push(binary.charCodeAt(i));
+            return new File([new Uint8Array(data)], "recorded-video.webm", {
+                type: "video/webm"
+            });
+        }
+        //获取屏幕流
+        function getDisplayMediaStream(cb) {
+            navigator.mediaDevices.getDisplayMedia()
+                .then(stream => { cb(null, stream); })
+                .catch(err => { cb(err, null); })
+        }
+    </script>
+</body>
+
+</html>

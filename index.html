@@ -1,0 +1,129 @@
+<!--
+ * @Date: 2020-05-09 21:39:50
+ * @LastEditors: Lee
+ * @LastEditTime: 2020-05-18 14:34:13
+ -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+    #box{
+        width: 100px;
+        height:100px;
+        background:gray;
+    }
+    /* .container{
+        width: 300px;
+        height: 300px;
+        position: absolute;
+        top:0;
+        left:0;
+        bottom:0;
+        right:0;
+        margin:auto
+    } */
+    body{
+        text-align: center;
+    }
+    .container{
+        width: 300px;
+        height: 300px;
+        position: absolute;
+        left:50%;
+        top:50%;
+        transform: translate(-50%, -50%);
+    }
+    #box{
+        display: inline-block;
+        vertical-align: middle;
+        position: relative;
+        overflow: hidden;
+        transform: translateZ(0);
+    }
+    .hoverbox{
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        border:1px solid #000;
+        transition: all 1s;
+        opacity: 0;
+    }
+    .hoverbox:nth-child(1){
+        background: red;
+        top:-80%;
+    }
+    .hoverbox:nth-child(2){
+        background: blue;
+        left:-80%;
+
+    }
+    .hoverbox:nth-child(3){
+        background: gold;
+        left:80%;
+
+    }
+    .hoverbox:nth-child(4){
+        background: rosybrown;
+        top:80%;
+
+    }
+    .hoverbox:hover{
+        /* background:blanchedalmond; */
+        top:0;
+        left:0;
+        opacity: 1;
+
+    }
+</style>
+<body>
+    <div class="container">
+        <p>⬇</p>
+        <span> ➡️ </span>
+        <div id="box">
+            <div class="hoverbox"></div>
+            <div class="hoverbox"></div>
+            <div class="hoverbox"></div>
+            <div class="hoverbox"></div>
+        </div>
+        <span>⬅</span>
+        <p>⬆</p>
+    </div>
+    <ul></ul>
+    <script>
+        setTimeout(() => {
+      // 插入十万条数据
+      const total = 600
+      // 一次插入 * 条，如果觉得性能不好就减少
+      const once = 200
+      // 渲染数据总共需要几次
+      const loopCount = total / once
+      let countOfRender = 0
+      let ul = document.querySelector("ul");
+      function add() {
+        // 优化性能，插入不会造成回流
+        const fragment = document.createDocumentFragment();
+        for (let i = 0; i < once; i++) {
+          const li = document.createElement("li");
+		  //   li.innerText = Math.floor(Math.random() * total);
+		  li.innerText = `这里是第 ${countOfRender} 次的 li ${i}`;
+          fragment.appendChild(li);
+        }
+        ul.appendChild(fragment);
+        countOfRender += 1;
+        loop();
+      }
+      function loop() {
+        if (countOfRender < loopCount) {
+          window.requestAnimationFrame(add);
+        }
+	  }
+      loop();
+    }, 0);
+    </script>
+</body>
+</html>
